@@ -1,0 +1,118 @@
+#include <game.hpp>
+
+Game::Game() : window(sf::VideoMode({window_width, window_height}), "breakout",
+                      sf::Style::Titlebar | sf::Style::Close),
+               img({window_width, window_height}, sf::Color::Black),
+               texture(img),
+               background(texture),
+               platform({platform_x_initial, platform_y_initial}, {platform_width, platform_height}),
+               ball({ball_x_initial, ball_y_initial}, ball_radius) {
+    window.setFramerateLimit(75u);
+    window.setMouseCursorVisible(false);
+    spawnBricks();
+}
+
+void Game::render() {
+    window.clear();
+    window.draw(background);
+    window.draw(platform.getShape());
+    window.draw(ball.getShape());
+    for (auto& brick : bricks) {
+        window.draw(brick.getShape());
+    }
+    window.display();
+}
+
+void Game::run() {
+    while (window.isOpen()) {
+        while (const std::optional event = window.pollEvent()) {
+            if (event->is<sf::Event::Closed>()) {
+                window.close();
+            }
+            if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                if (keyPressed->scancode == sf::Keyboard::Scancode::Left) {
+                    if (platform.getShape().getPosition().x >= 0) {
+                        platform.move(-platform_speed);
+                    }
+                }
+                else if (keyPressed->scancode == sf::Keyboard::Scancode::Right) {
+                    if (platform.getShape().getPosition().x <= window_width - platform_width) {
+                        platform.move(platform_speed);
+                    }
+                }
+                else if (keyPressed->scancode == sf::Keyboard::Scancode::Space) {
+                    if (!ball_launched)
+                        ball_launched = true;
+                    platform.charged ? platform.discharge() : platform.charge();
+                }
+            }
+            if (const auto* keyReleased = event->getIf<sf::Event::KeyReleased>()) {
+                if (keyReleased->scancode == sf::Keyboard::Scancode::Left ||
+                    keyReleased->scancode == sf::Keyboard::Scancode::Right)
+                    platform.speed = 0.f;
+            }
+        }
+        moveBall();
+        render();
+    }
+}
+
+void Game::moveBall() {
+    const sf::Vector2f ball_pos = ball.getShape().getPosition();
+    const sf::Vector2f platform_pos = platform.getShape().getPosition();
+    
+    if (ball_launched) {
+        // check if platform hit, push back when dug into it; reverse the velocity
+        if ((ball_pos.x >= platform_pos.x - ball_radius && ball_pos.x <= platform_pos.x + platform_width) &&
+            (ball_pos.y >= ball_y_initial && ball_pos.y <= ball_y_initial + platform_height)) {
+
+            // de-launch the ball in case of slowing too greatly
+            if (ball.velocity.y <= 0.3f && ball.velocity.y > 0) {
+                ball_launched = false;
+                static_ball_x_displacement = ball_pos.x - platform_pos.x;
+            }
+
+            ball.displace({0.f, ball_y_initial - ball_pos.y});
+            
+            // calculate bounce depending on the point of contact with the platform
+            const float center_offset = (ball_pos.x - (platform_pos.x + platform_width / 2)) / (platform_width / 2);
+            ball.velocity.x += platform.speed * center_offset * 0.3;
+            ball.velocity.y *= bounce_coeff;
+
+            // pump up the little guy if charged
+            if (platform.charged) {
+                ball.velocity.y -= platform_charge_boost;
+                platform.discharge();
+            }
+        }
+        // check if bounds are reached, push back the f*cker when out of bounds; reverse the velocity
+        else {
+            if (float displacement = (ball_pos.y - ball_radius); displacement <= 0) {
+                ball.displace({0.f, -displacement});
+                ball.velocity.y *= bounce_coeff;
+            }
+            if (float displacement = ball_pos.x - ball_radius; displacement <= 0) {
+                ball.displace({-displacement, 0.f});
+                ball.velocity.x *= bounce_coeff;
+            }
+            else if (float displacement = (window_width - ball_pos.x - ball_radius); displacement <= 0) {
+                ball.displace({displacement, 0.f});
+                ball.velocity.x *= bounce_coeff;
+            }
+        }
+        // increase the fall speed
+        ball.velocity.y += fall_accel;
+        ball.move();
+    }
+    else {
+        ball.setPosition({platform_pos.x + static_ball_x_displacement, ball_y_initial});
+    }
+}
+
+void Game::spawnBricks() {
+    for (float y = 0.f; y <= 330.f; y += brick_height + 2.f) {
+        for (float x = 0.f; x <= window_width; x += brick_width + 2.f) {
+            bricks.emplace_back(Brick({x, y}, {brick_width, brick_height}));
+        }
+    }
+}
