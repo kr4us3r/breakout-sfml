@@ -9,11 +9,32 @@ class Ball {
 public:
     sf::Vector2f velocity = {0.f, 0.f};
 
-    Ball(const sf::Vector2f, const float);
-    const sf::CircleShape& getShape();
-    void move();
-    void displace(sf::Vector2f);
-    void setPosition(sf::Vector2f);
+    Ball(const sf::Vector2f pos, const float radius) {
+        ball.setRadius(radius);
+        ball.setOrigin({radius, radius});
+        ball.setPosition(pos);
+        ball.setFillColor(sf::Color::Red);
+    }
+
+    const sf::CircleShape& getShape() {
+        return ball;
+    }
+
+    const sf::Vector2f getPosition() {
+        return ball.getPosition();
+    }
+
+    void setPosition(sf::Vector2f pos) {
+        ball.setPosition(pos);
+    }
+
+    void move() {
+        ball.move(velocity);
+    }
+
+    void displace(sf::Vector2f offset) {
+        ball.move(offset);
+    }
 };
 
 #endif // BREAKOUT_BALL

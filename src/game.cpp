@@ -17,7 +17,7 @@ void Game::render() {
     window.draw(background);
     window.draw(platform.getShape());
     window.draw(ball.getShape());
-    for (auto& brick : bricks) {
+    for (const Brick& brick : bricks) {
         window.draw(brick.getShape());
     }
     window.display();
@@ -31,12 +31,12 @@ void Game::run() {
             }
             if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
                 if (keyPressed->scancode == sf::Keyboard::Scancode::Left) {
-                    if (platform.getShape().getPosition().x >= 0) {
+                    if (platform.getPosition().x >= 0) {
                         platform.move(-platform_speed);
                     }
                 }
                 else if (keyPressed->scancode == sf::Keyboard::Scancode::Right) {
-                    if (platform.getShape().getPosition().x <= window_width - platform_width) {
+                    if (platform.getPosition().x <= window_width - platform_width) {
                         platform.move(platform_speed);
                     }
                 }
@@ -53,13 +53,14 @@ void Game::run() {
             }
         }
         moveBall();
+        detectCollision();
         render();
     }
 }
 
 void Game::moveBall() {
-    const sf::Vector2f ball_pos = ball.getShape().getPosition();
-    const sf::Vector2f platform_pos = platform.getShape().getPosition();
+    const sf::Vector2f ball_pos = ball.getPosition();
+    const sf::Vector2f platform_pos = platform.getPosition();
     
     if (ball_launched) {
         // check if platform hit, push back when dug into it; reverse the velocity
@@ -114,5 +115,13 @@ void Game::spawnBricks() {
         for (float x = 0.f; x <= window_width; x += brick_width + 2.f) {
             bricks.emplace_back(Brick({x, y}, {brick_width, brick_height}));
         }
+    }
+}
+
+void Game::detectCollision() {
+    const sf::Vector2f ball_pos = ball.getPosition();
+
+    for (const Brick& brick : bricks) {
+
     }
 }

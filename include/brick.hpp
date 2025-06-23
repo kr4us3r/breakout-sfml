@@ -5,11 +5,23 @@
 
 class Brick {
     sf::RectangleShape brick;
-    unsigned hp = 1;
+
 public:
     sf::Vector2f position;
-    Brick(const sf::Vector2f, const sf::Vector2f);
-    const sf::RectangleShape& getShape();
+    
+    Brick(const sf::Vector2f pos, const sf::Vector2f dimensions) {
+        brick.setSize(dimensions);
+        brick.setPosition(pos);
+        brick.setFillColor(sf::Color::Green);
+    }
+
+    const sf::RectangleShape& getShape() const {
+        return brick;
+    }
+
+    const sf::Vector2f getPosition() {
+        return brick.getPosition();
+    }
 };
 
 #endif // BREAKOUT_BRICK

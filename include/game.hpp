@@ -1,10 +1,10 @@
 #ifndef BREAKOUT_GAME
 #define BREAKOUT_GAME
 
+#include <vector>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Window/Event.hpp>
-#include <vector>
 #include <platform.hpp>
 #include <ball.hpp>
 #include <brick.hpp>
@@ -31,9 +31,9 @@ class Game {
     float static_ball_x_displacement = platform_width / 2;
 
     // physics constants
-    const float bounce_coeff = -0.55f;
+    const float bounce_coeff = -0.6f;
     const float fall_accel = 0.06f;
-    const float platform_speed = 30.f;
+    const float platform_speed = 50.f;
     const float platform_charge_boost = 15.f;
 
     // flags
@@ -51,6 +51,8 @@ class Game {
     void render();
     void moveBall();
     void spawnBricks();
+    void detectCollision();
+
 public:
     Game();
     void run();
