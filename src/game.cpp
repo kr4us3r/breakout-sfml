@@ -1,4 +1,5 @@
 #include <game.hpp>
+#include <algorithm>
 
 Game::Game() : window(sf::VideoMode({window_width, window_height}), "breakout",
                       sf::Style::Titlebar | sf::Style::Close),
@@ -53,7 +54,7 @@ void Game::run() {
             }
         }
         moveBall();
-        detectCollision();
+        handleBricksCollision();
         render();
     }
 }
@@ -75,9 +76,7 @@ void Game::moveBall() {
 
             ball.displace({0.f, ball_y_initial - ball_pos.y});
             
-            // calculate bounce depending on the point of contact with the platform
-            const float center_offset = (ball_pos.x - (platform_pos.x + platform_width / 2)) / (platform_width / 2);
-            ball.velocity.x += platform.speed * center_offset * 0.3;
+            ball.velocity.x += platform.speed * 0.05;
             ball.velocity.y *= bounce_coeff;
 
             // pump up the little guy if charged
@@ -118,10 +117,28 @@ void Game::spawnBricks() {
     }
 }
 
-void Game::detectCollision() {
+void Game::handleBricksCollision() { 
     const sf::Vector2f ball_pos = ball.getPosition();
 
-    for (const Brick& brick : bricks) {
+    for (Brick& brick : bricks) {
+        if (brick.destroyed) continue;
 
+        const sf::Vector2f brick_pos = brick.getPosition();
+
+        float closest_x = std::clamp(ball_pos.x, brick_pos.x, brick_pos.x + brick_width);
+        float closest_y = std::clamp(ball_pos.y, brick_pos.y, brick_pos.y + brick_height);
+
+        float dist_x = ball_pos.x - closest_x;
+        float dist_y = ball_pos.y - closest_y;
+        float dist_squared = dist_x * dist_x + dist_y * dist_y;
+        float radius_squared = ball_radius * ball_radius;
+
+        if (dist_squared <= radius_squared) {
+            ball.displace({-dist_x, dist_y});
+            ball.velocity.y *= bounce_coeff;
+
+            brick.destroy();
+            break;
+        }
     }
 }

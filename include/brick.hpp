@@ -8,6 +8,7 @@ class Brick {
 
 public:
     sf::Vector2f position;
+    bool destroyed = false;
     
     Brick(const sf::Vector2f pos, const sf::Vector2f dimensions) {
         brick.setSize(dimensions);
@@ -19,8 +20,13 @@ public:
         return brick;
     }
 
-    const sf::Vector2f getPosition() {
+    const sf::Vector2f getPosition() const {
         return brick.getPosition();
+    }
+
+    void destroy() {
+        brick.setFillColor(sf::Color::Transparent);
+        destroyed = true;
     }
 };
 
