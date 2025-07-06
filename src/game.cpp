@@ -1,5 +1,6 @@
 #include <game.hpp>
 #include <algorithm>
+#include <ctime>
 
 Game::Game() : window(sf::VideoMode({window_width, window_height}), "breakout",
                       sf::Style::Titlebar | sf::Style::Close),
@@ -11,6 +12,7 @@ Game::Game() : window(sf::VideoMode({window_width, window_height}), "breakout",
     window.setFramerateLimit(75u);
     window.setMouseCursorVisible(false);
     spawnBricks();
+    std::srand(std::time({}));
 }
 
 void Game::render() {
@@ -22,6 +24,24 @@ void Game::render() {
         window.draw(brick.getShape());
     }
     window.display();
+}
+
+void Game::moveBall() {
+    if (ball_launched) {
+        ball.velocity.y += fall_accel;
+        ball.move();
+    }
+}
+
+void Game::spawnBricks() {
+    for (unsigned y = 0; y < num_bricks_y; ++y) {
+        for (unsigned x = 0; x < num_bricks_x; ++x) {
+            bricks.emplace_back(Brick({spacing + (brick_width+spacing)*x,
+                                       spacing + (brick_height+spacing)*y},
+                                       {brick_width, brick_height},
+                                        std::rand() % 3 + 1));
+        }
+    }
 }
 
 void Game::run() {
@@ -42,9 +62,12 @@ void Game::run() {
                     }
                 }
                 else if (keyPressed->scancode == sf::Keyboard::Scancode::Space) {
-                    if (!ball_launched)
+                    if (!ball_launched) {
                         ball_launched = true;
-                    platform.charged ? platform.discharge() : platform.charge();
+                        ball.velocity.y -= 12.f; // the initial speed is higher than the boost
+                    } else {
+                        platform.charged ? platform.discharge() : platform.charge();
+                    }
                 }
             }
             if (const auto* keyReleased = event->getIf<sf::Event::KeyReleased>()) {
@@ -53,13 +76,32 @@ void Game::run() {
                     platform.speed = 0.f;
             }
         }
+        handlePlatformCollision();
+        handleWallCollision();
+        handleBrickCollision();
         moveBall();
-        handleBricksCollision();
         render();
     }
 }
 
-void Game::moveBall() {
+void Game::handleWallCollision() {
+    const sf::Vector2f ball_pos = ball.getPosition();
+
+    if (float displacement = (ball_pos.y - ball_radius); displacement <= 0) {
+        ball.displace({0.f, -displacement});
+        ball.velocity.y *= bounce_coeff;
+    }
+    if (float displacement = ball_pos.x - ball_radius; displacement <= 0) {
+        ball.displace({-displacement, 0.f});
+        ball.velocity.x *= bounce_coeff;
+    }
+    else if (float displacement = (window_width - ball_pos.x - ball_radius); displacement <= 0) {
+        ball.displace({displacement, 0.f});
+        ball.velocity.x *= bounce_coeff;
+    }
+}
+
+void Game::handlePlatformCollision() {
     const sf::Vector2f ball_pos = ball.getPosition();
     const sf::Vector2f platform_pos = platform.getPosition();
     
@@ -85,39 +127,13 @@ void Game::moveBall() {
                 platform.discharge();
             }
         }
-        // check if bounds are reached, push back the f*cker when out of bounds; reverse the velocity
-        else {
-            if (float displacement = (ball_pos.y - ball_radius); displacement <= 0) {
-                ball.displace({0.f, -displacement});
-                ball.velocity.y *= bounce_coeff;
-            }
-            if (float displacement = ball_pos.x - ball_radius; displacement <= 0) {
-                ball.displace({-displacement, 0.f});
-                ball.velocity.x *= bounce_coeff;
-            }
-            else if (float displacement = (window_width - ball_pos.x - ball_radius); displacement <= 0) {
-                ball.displace({displacement, 0.f});
-                ball.velocity.x *= bounce_coeff;
-            }
-        }
-        // increase the fall speed
-        ball.velocity.y += fall_accel;
-        ball.move();
     }
     else {
         ball.setPosition({platform_pos.x + static_ball_x_displacement, ball_y_initial});
     }
 }
 
-void Game::spawnBricks() {
-    for (float y = 0.f; y <= 330.f; y += brick_height + 2.f) {
-        for (float x = 0.f; x <= window_width; x += brick_width + 2.f) {
-            bricks.emplace_back(Brick({x, y}, {brick_width, brick_height}));
-        }
-    }
-}
-
-void Game::handleBricksCollision() { 
+void Game::handleBrickCollision() { 
     const sf::Vector2f ball_pos = ball.getPosition();
 
     for (Brick& brick : bricks) {
@@ -137,7 +153,7 @@ void Game::handleBricksCollision() {
             ball.displace({-dist_x, dist_y});
             ball.velocity.y *= bounce_coeff;
 
-            brick.destroy();
+            brick.takeDamage();
             break;
         }
     }

@@ -17,8 +17,10 @@ class Game {
     static constexpr float platform_width = 200.f;
     static constexpr float platform_height = 15.f;
 
-    static constexpr float brick_width = 30.f;
-    static constexpr float brick_height = 15.f;
+    static constexpr unsigned num_bricks_x = 15u;
+    static constexpr unsigned num_bricks_y = 5u;
+    static constexpr float brick_width = 70.f;
+    static constexpr float brick_height = 30.f;
 
     static constexpr float platform_x_initial = (static_cast<float>(window_width) - platform_width) / 2;
     static constexpr float platform_y_initial = static_cast<float>(window_height - 40u);
@@ -27,14 +29,16 @@ class Game {
     static constexpr float ball_x_initial = static_cast<float>(window_width / 2);
     static constexpr float ball_y_initial = platform_y_initial - ball_radius;
 
-    // still ball's position relative to the leftmost platform's corner
-    float static_ball_x_displacement = platform_width / 2;
-
+    static constexpr float spacing = static_cast<float>(window_width - (num_bricks_x * brick_width)) / (num_bricks_x + 1);
+    
     // physics constants
-    static constexpr float bounce_coeff = -0.8f;
+    static constexpr float bounce_coeff = -0.9f;
     static constexpr float fall_accel = 0.05f;
     static constexpr float platform_speed = 50.f;
-    static constexpr float platform_charge_boost = 10.f;
+    static constexpr float platform_charge_boost = 7.f;
+
+    // still ball's position relative to the leftmost platform's corner
+    float static_ball_x_displacement = platform_width / 2;
 
     // flags
     bool ball_launched = false;
@@ -51,7 +55,9 @@ class Game {
     void render();
     void moveBall();
     void spawnBricks();
-    void handleBricksCollision();
+    void handleWallCollision();
+    void handlePlatformCollision();
+    void handleBrickCollision();
 
 public:
     Game();
