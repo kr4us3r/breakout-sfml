@@ -10,7 +10,6 @@ class Brick {
     static constexpr std::array<sf::Color, N> color_pool = {sf::Color::White, sf::Color::Yellow, sf::Color::Red};
 
 public:
-    sf::Vector2f position;
     size_t health_points;
     bool destroyed = false;
     
