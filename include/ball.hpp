@@ -2,6 +2,7 @@
 #define BREAKOUT_BALL
 
 #include <SFML/Graphics.hpp>
+#include <cmath>
 
 class Ball {
     sf::CircleShape ball;
@@ -49,7 +50,8 @@ public:
     }
 
     sf::Vector2f lerpPosition(float t) const {
-        return prev_position + (ball.getPosition() - prev_position) * t;
+        return {std::lerp(prev_position.x, ball.getPosition().x, t),
+                std::lerp(prev_position.y, ball.getPosition().y, t)};
     }
 };
 

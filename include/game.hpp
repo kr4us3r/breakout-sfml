@@ -22,7 +22,7 @@ class Game {
     static constexpr unsigned num_bricks_y = 6u;
     static constexpr float brick_width = 85.f;
     static constexpr float brick_height = 22.f;
-    static constexpr float brick_gap = 12.f;   // wider gaps between bricks
+    static constexpr float brick_gap = 12.f;
 
     static constexpr float platform_x_initial = (static_cast<float>(window_width) - platform_width) / 2;
     static constexpr float platform_y_initial = static_cast<float>(window_height - 40u);
@@ -36,10 +36,12 @@ class Game {
     static constexpr float fall_accel = 0.05f;
     static constexpr float platform_charge_boost = 7.f;
     static constexpr float initial_launch_speed = 12.f;
-    static constexpr float max_ball_speed = 22.f;
+    static constexpr float max_ball_speed = 25.f;
+    static constexpr float burn_speed_threshold = 16.f;
 
-    // CCD sub-steps
-    static constexpr unsigned ccd_substeps = 4u;
+    // CCD — max swept sub-steps (adaptive, based on velocity)
+    static constexpr unsigned ccd_max_steps = 16u;
+    static constexpr float ccd_step_size = ball_radius * 0.5f;
 
     // lives
     static constexpr unsigned max_lives = 3u;
