@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/include",
+                "C:/Users/User/Documents/Programming/C++/sfml-3.0/include"
+            ],
+            "defines": [
+                "SFML_STATIC"
+            ],
+            "compilerPath": "C:/Users/User/Documents/Programming/C++/mingw-sfml-3.0/bin/g++.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-gcc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/**",
+                    "${workspaceFolder}/include",
+                    "C:/Users/User/Documents/Programming/C++/sfml-3.0/include"
+                ]
+            }
+        }
+    ],
+    "version": 4
+}
