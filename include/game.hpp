@@ -2,6 +2,7 @@
 #define BREAKOUT_GAME
 
 #include <vector>
+#include <string>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Window/Event.hpp>
@@ -19,7 +20,7 @@ class Game {
     static constexpr float platform_height = 15.f;
 
     static constexpr unsigned num_bricks_x = 12u;
-    static constexpr unsigned num_bricks_y = 6u;
+    static constexpr unsigned num_bricks_y = 8u;
     static constexpr float brick_width = 85.f;
     static constexpr float brick_height = 22.f;
     static constexpr float brick_gap = 12.f;
@@ -31,13 +32,23 @@ class Game {
     static constexpr float ball_x_initial = static_cast<float>(window_width / 2);
     static constexpr float ball_y_initial = platform_y_initial - ball_radius;
 
-    // physics constants
+    // physics constants (scale slightly with level)
     static constexpr float bounce_coeff = -0.9f;
-    static constexpr float fall_accel = 0.05f;
+    static constexpr float base_fall_accel = 0.05f;
+    float fall_accel = base_fall_accel;
     static constexpr float platform_charge_boost = 7.f;
-    static constexpr float initial_launch_speed = 12.f;
+    static constexpr float base_launch_speed = 12.f;
+    float initial_launch_speed = base_launch_speed;
     static constexpr float max_ball_speed = 25.f;
     static constexpr float burn_speed_threshold = 16.f;
+
+    // realistic platform/wall physics
+    static constexpr float platform_restitution = 0.92f;
+    static constexpr float platform_friction = 0.16f;
+    static constexpr float wall_restitution = 0.88f;
+    static constexpr float air_drag = 0.04f;
+    static constexpr float relaunch_threshold = 4.5f;
+    static constexpr float grab_vertical_range = 10.f;
 
     // CCD — max swept sub-steps (adaptive, based on velocity)
     static constexpr unsigned ccd_max_steps = 16u;
@@ -49,9 +60,16 @@ class Game {
     // still ball's position relative to leftmost platform corner
     float static_ball_x_displacement = platform_width / 2;
 
-    // game state
-    enum class State { MENU, PLAYING, DEAD, WIN };
+    // game mode + state
+    enum class Mode { STORY, ENDLESS };
+    enum class State { MENU, PLAYING, LEVEL_CLEAR, DEAD, WIN };
+    Mode mode = Mode::STORY;
     State state = State::MENU;
+    unsigned menu_selection = 0;          // 0 = Story, 1 = Endless
+    unsigned current_level = 1u;
+    static constexpr unsigned endless_cap_level = 12u;  // difficulty caps here
+    float level_clear_timer = 0.f;
+    std::string status_line;              // shown on LEVEL_CLEAR / WIN / DEAD
 
     bool ball_launched = false;
     unsigned lives = max_lives;
@@ -80,10 +98,14 @@ class Game {
     void renderMenu();
     void renderDeathScreen();
     void renderWinScreen();
+    void renderLevelClearScreen();
     void moveBall(float dt);
-    void spawnBricks();
+    void spawnLevel(unsigned level, Mode mode);
+    void applyDifficulty(unsigned level);
     void resetBall();
-    void startNewGame();
+    void startStory();
+    void startEndless();
+    void advanceLevel();
     void handleWallCollision();
     void handlePlatformCollision();
     void handleBrickCollision();
@@ -91,6 +113,7 @@ class Game {
     bool checkWin() const;
 
 public:
+    static constexpr unsigned story_level_count = 5u;
     Game();
     void run();
 };
