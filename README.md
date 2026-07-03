@@ -24,6 +24,7 @@ Press Space while the ball is in play to charge the paddle. The next contact giv
 ## Controls
 
 | Key       | Action |
+|-----------|--------|
 | **← / →** | Move paddle |
 | **Space** | Launch ball / Charge & discharge paddle |
 | **↑ / ↓** | Navigate menu |
