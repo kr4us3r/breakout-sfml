@@ -10,6 +10,7 @@
 #include <ball.hpp>
 #include <brick.hpp>
 #include <particles.hpp>
+#include <sound.hpp>
 
 class Game {
     // geometry constants
@@ -91,6 +92,7 @@ class Game {
     Ball ball;
     std::vector<Brick> bricks;
     ParticleSystem particles;
+    SoundManager sound_manager;
 
     void render();
     void renderHearts();

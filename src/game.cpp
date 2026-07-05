@@ -28,10 +28,10 @@ static void drawHeart(sf::RenderWindow& win, float cx, float cy, float size, sf:
 }
 
 // ----------------------------------------------------------------------
-// Hand-crafted story layouts (12 columns x 8 rows). '1'..'6' = HP.
+// Story mode layouts (12 columns x 8 rows). '1'..'6' = HP.
 // ----------------------------------------------------------------------
 static const std::array<std::string, Game::story_level_count> story_layouts = {
-    // Level 1 — "Awakening": gentle intro
+    // Level 1
     "000000000000"
     "000000000000"
     "000011110000"
@@ -40,7 +40,7 @@ static const std::array<std::string, Game::story_level_count> story_layouts = {
     "000122221000"
     "000011110000"
     "000000000000",
-    // Level 2 — "The Wall": solid wall with gaps
+    // Level 2
     "000000000000"
     "111111111111"
     "112222222211"
@@ -49,7 +49,7 @@ static const std::array<std::string, Game::story_level_count> story_layouts = {
     "112222222211"
     "111111111111"
     "000000000000",
-    // Level 3 — "Diamond": HP peaks at center
+    // Level 3
     "000003300000"
     "000034430000"
     "000345543000"
@@ -58,7 +58,7 @@ static const std::array<std::string, Game::story_level_count> story_layouts = {
     "000034430000"
     "000003300000"
     "000000000000",
-    // Level 4 — "Fortress": thick layered walls
+    // Level 4
     "555555555555"
     "544444444445"
     "543333333345"
@@ -67,7 +67,7 @@ static const std::array<std::string, Game::story_level_count> story_layouts = {
     "543333333345"
     "544444444445"
     "555555555555",
-    // Level 5 — "Armageddon": dense, high HP
+    // Level 5
     "666666666666"
     "655555555556"
     "654444444456"
@@ -595,6 +595,13 @@ bool Game::checkWin() const {
 // ----------------------------------------------------------------------
 void Game::run() {
     clock.restart();
+    sound_manager.loadAllSfx();
+    sound_manager.setPlaylist({
+        {music_arcade_data,    static_cast<std::size_t>(music_arcade_size)},
+        {music_katana_data,    static_cast<std::size_t>(music_katana_size)},
+        {music_rigel_data,     static_cast<std::size_t>(music_rigel_size)},
+        {music_synthwave_data, static_cast<std::size_t>(music_synthwave_size)},
+    });
 
     while (window.isOpen()) {
         float dt = clock.restart().asSeconds();
@@ -699,6 +706,7 @@ void Game::run() {
             }
         }
 
+        sound_manager.updateMusic();
         updateParticles(dt);
         for (Brick& brick : bricks) brick.update(dt);
         render();
@@ -714,18 +722,21 @@ void Game::handleWallCollision() {
     if (ball_pos.y - ball_radius <= 0) {
         ball.displace({0.f, ball_radius - ball_pos.y});
         ball.velocity.y = -ball.velocity.y * wall_restitution;
+        sound_manager.playSfx("wall_hit");
         particles.emit(ball_pos, {0.f, 0.f}, 15, sf::Color(180, 200, 255), 0,
                        60, 250, 2.f, 4.f, 0.3f, 0.6f, 200.f, 0.95f);
     }
     if (ball_pos.x - ball_radius <= 0) {
         ball.displace({ball_radius - ball_pos.x, 0.f});
         ball.velocity.x = -ball.velocity.x * wall_restitution;
+        sound_manager.playSfx("wall_hit");
         particles.emit(ball_pos, {0.f, 0.f}, 15, sf::Color(180, 200, 255), 0,
                        60, 250, 2.f, 4.f, 0.3f, 0.6f, 200.f, 0.95f);
     }
     if (ball_pos.x + ball_radius >= static_cast<float>(window_width)) {
         ball.displace({static_cast<float>(window_width) - ball_pos.x - ball_radius, 0.f});
         ball.velocity.x = -ball.velocity.x * wall_restitution;
+        sound_manager.playSfx("wall_hit");
         particles.emit(ball_pos, {0.f, 0.f}, 15, sf::Color(180, 200, 255), 0,
                        60, 250, 2.f, 4.f, 0.3f, 0.6f, 200.f, 0.95f);
     }
@@ -782,6 +793,8 @@ void Game::handlePlatformCollision() {
     // Only respond if the ball is moving into the platform.
     float vdotn = ball.velocity.x * normal.x + ball.velocity.y * normal.y;
     if (vdotn >= 0.f) return;
+
+    sound_manager.playSfx("platform_hit");
 
     // Push the ball out of the platform along the normal.
     float penetration = ball_radius - dist;
@@ -863,6 +876,7 @@ void Game::handleBrickCollision() {
             }
 
             brick.takeDamage(contact_pos);
+            sound_manager.playSfx("brick_hit");
             score += brick.destroyed ? 100 : 25;
 
             sf::Color pcolor = brick.getColor();

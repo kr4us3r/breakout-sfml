@@ -39,20 +39,42 @@ Press Space while the ball is in play to charge the paddle. The next contact giv
 - **SFML 3.0**
 - **FreeType** (bundled with SFML static libs)
 
+### Music assets
+
+The music tracks live in `assets/music/`. They are embedded into the
+executable as C++ byte arrays via `tools/embed_music.py`, so the resulting
+`.exe` is fully self-contained.
+
+If you add, replace, or remove tracks, update the `TRACKS` list in
+`tools/embed_music.py` and regenerate the embedded sources:
+
+```bash
+python tools/embed_music.py
+```
+
+This regenerates `include/music_data.hpp` and `src/music_data.cpp`, which are
+picked up automatically by the build (the latter is compiled alongside the
+other translation units under `src/`).
+
 ### Build (Windows / MinGW)
 ```bash
+# 1. Embed the music tracks into C++ sources (run once, or whenever tracks change)
+python tools/embed_music.py
+
+# 2. Compile
 g++ -O3 -std=c++20 -static -DSFML_STATIC \
     -Iinclude -I<path-to-sfml>/include \
     -L<path-to-sfml>/lib \
     src/*.cpp -o breakout.exe \
-    -lsfml-graphics-s -lsfml-window-s -lsfml-system-s \
+    -lsfml-graphics-s -lsfml-window-s -lsfml-audio-s -lsfml-system-s \
+    -lvorbisenc -lvorbisfile -lvorbis -logg -lFLAC \
     -lfreetype -lopengl32 -lgdi32 -lwinmm -mwindows
 ```
 
 ---
 
-## 📜 License
+## License
 This project is open source.
 
-## 🙏 Credits
+## Credits
 Built with [SFML](https://www.sfml-dev.org/) and GLM 5.2.
