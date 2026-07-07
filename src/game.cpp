@@ -90,7 +90,8 @@ Game::Game() : window(sf::VideoMode({window_width, window_height}), "breakout",
                platform({platform_x_initial, platform_y_initial}, {platform_width, platform_height}),
                ball({ball_x_initial, ball_y_initial}, ball_radius) {
     window.setFramerateLimit(75u);
-    window.setMouseCursorVisible(false);
+    window.setMouseCursorGrabbed(true);  // confine cursor to window
+    // Cursor visibility is toggled per state in run().
     std::srand(static_cast<unsigned>(std::time(nullptr)));
 
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) {
@@ -229,6 +230,23 @@ void Game::render() {
         return;
     }
 
+    if (state == State::PAUSED) {
+        for (const Brick& brick : bricks) {
+            if (!brick.destroyed) window.draw(brick.getGlow());
+        }
+        window.draw(platform.getGlow());
+        platform.drawBody(window);
+        window.draw(ball.getShape());
+        for (const Brick& brick : bricks) {
+            brick.drawBody(window);
+        }
+        particles.draw(window);
+        renderHUD();
+        renderPauseScreen();
+        window.display();
+        return;
+    }
+
     // --- PLAYING state ---
     for (const Brick& brick : bricks) {
         if (!brick.destroyed) window.draw(brick.getGlow());
@@ -316,7 +334,7 @@ void Game::renderMenu() {
     }
 
     sf::Text ctrl(font);
-    ctrl.setString("Up/Down to choose    Space to start    Esc to quit");
+    ctrl.setString("Arrows or Mouse to choose    Space/Click to start    Esc to quit");
     ctrl.setCharacterSize(18);
     ctrl.setFillColor(sf::Color(120, 120, 150));
     auto cb = ctrl.getLocalBounds();
@@ -343,6 +361,52 @@ void Game::renderMenu() {
         bs.setPosition({cx, cy + 220.f});
         window.draw(bs);
     }
+}
+
+// ----------------------------------------------------------------------
+// Pause menu overlay
+// ----------------------------------------------------------------------
+void Game::renderPauseScreen() {
+    sf::RectangleShape overlay(sf::Vector2f(static_cast<float>(window_width),
+                                            static_cast<float>(window_height)));
+    overlay.setFillColor(sf::Color(0, 0, 0, 160));
+    window.draw(overlay);
+
+    float cx = static_cast<float>(window_width) / 2.f;
+    float cy = static_cast<float>(window_height) / 2.f;
+
+    sf::Text title(font);
+    title.setString("PAUSED");
+    title.setCharacterSize(72);
+    title.setFillColor(sf::Color(255, 200, 100));
+    title.setStyle(sf::Text::Bold);
+    auto tb = title.getLocalBounds();
+    title.setOrigin({tb.position.x + tb.size.x / 2.f, tb.position.y + tb.size.y / 2.f});
+    title.setPosition({cx, cy - 110.f});
+    window.draw(title);
+
+    const std::array<std::string, 2> options = {"Resume", "Main Menu"};
+    for (std::size_t i = 0; i < options.size(); ++i) {
+        bool sel = (i == pause_selection);
+        sf::Text opt(font);
+        opt.setString((sel ? ">  " : "   ") + options[i]);
+        opt.setCharacterSize(42);
+        opt.setFillColor(sel ? sf::Color(255, 220, 100) : sf::Color(180, 180, 220));
+        opt.setStyle(sel ? sf::Text::Bold : sf::Text::Regular);
+        auto ob = opt.getLocalBounds();
+        opt.setOrigin({ob.position.x + ob.size.x / 2.f, ob.position.y + ob.size.y / 2.f});
+        opt.setPosition({cx, cy + static_cast<float>(i) * 64.f});
+        window.draw(opt);
+    }
+
+    sf::Text hint(font);
+    hint.setString("Esc to resume    Click to select");
+    hint.setCharacterSize(18);
+    hint.setFillColor(sf::Color(120, 120, 150));
+    auto hb = hint.getLocalBounds();
+    hint.setOrigin({hb.position.x + hb.size.x / 2.f, hb.position.y + hb.size.y / 2.f});
+    hint.setPosition({cx, cy + 130.f});
+    window.draw(hint);
 }
 
 // ----------------------------------------------------------------------
@@ -623,6 +687,9 @@ void Game::run() {
                         if (death_timer >= 2.5f) state = State::MENU;
                     } else if (state == State::WIN) {
                         state = State::MENU;
+                    } else if (state == State::PAUSED) {
+                        if (pause_selection == 0u) state = State::PLAYING;
+                        else state = State::MENU;
                     } else if (state == State::PLAYING) {
                         if (!ball_launched) {
                             ball_launched = true;
@@ -639,39 +706,122 @@ void Game::run() {
 
                 if (sc == sf::Keyboard::Scancode::Up
                     || sc == sf::Keyboard::Scancode::Down) {
+                    using_mouse = false;
                     if (state == State::MENU) {
                         menu_selection = 1u - menu_selection;
+                    } else if (state == State::PAUSED) {
+                        pause_selection = 1u - pause_selection;
                     }
                 }
 
+                if (sc == sf::Keyboard::Scancode::Left
+                    || sc == sf::Keyboard::Scancode::Right) {
+                    using_mouse = false;
+                }
+
                 if (sc == sf::Keyboard::Scancode::Escape) {
-                    if (state == State::PLAYING || state == State::LEVEL_CLEAR) {
+                    if (state == State::PLAYING) {
+                        state = State::PAUSED;
+                        pause_selection = 0u;
+                    } else if (state == State::PAUSED) {
+                        state = State::PLAYING;
+                    } else if (state == State::LEVEL_CLEAR) {
                         state = State::MENU;
                     } else if (state == State::MENU) {
                         window.close();
                     }
                 }
             }
+
+            // Mouse moved — switch to mouse input mode
+            if (event->is<sf::Event::MouseMoved>()) {
+                int mx = sf::Mouse::getPosition(window).x;
+                if (last_mouse_x >= 0 && mx != last_mouse_x) {
+                    using_mouse = true;
+                }
+                last_mouse_x = mx;
+            }
+
+            // Mouse click
+            if (const auto* mb = event->getIf<sf::Event::MouseButtonPressed>()) {
+                if (mb->button == sf::Mouse::Button::Left) {
+                    if (state == State::MENU) {
+                        if (menu_selection == 0u) startStory();
+                        else startEndless();
+                    } else if (state == State::PAUSED) {
+                        if (pause_selection == 0u) state = State::PLAYING;
+                        else state = State::MENU;
+                    } else if (state == State::LEVEL_CLEAR) {
+                        advanceLevel();
+                    } else if (state == State::DEAD) {
+                        if (death_timer >= 2.5f) state = State::MENU;
+                    } else if (state == State::WIN) {
+                        state = State::MENU;
+                    } else if (state == State::PLAYING) {
+                        if (!ball_launched) {
+                            ball_launched = true;
+                            ball.velocity.y -= initial_launch_speed;
+                        } else {
+                            if (platform.isCharged()) platform.discharge();
+                            else platform.charge();
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Cursor visibility: visible in menus, hidden in gameplay ---
+        window.setMouseCursorVisible(state != State::PLAYING);
+
+        // --- Mouse hover updates menu/pause selections ---
+        if (using_mouse && (state == State::MENU || state == State::PAUSED)) {
+            sf::Vector2f mp = static_cast<sf::Vector2f>(sf::Mouse::getPosition(window));
+            float cy = static_cast<float>(window_height) / 2.f;
+
+            if (state == State::MENU) {
+                for (unsigned i = 0; i < 2u; ++i) {
+                    float oy = cy - 10.f + static_cast<float>(i) * 64.f;
+                    if (std::abs(mp.y - oy) < 28.f) menu_selection = i;
+                }
+            } else {
+                for (unsigned i = 0; i < 2u; ++i) {
+                    float oy = cy + static_cast<float>(i) * 64.f;
+                    if (std::abs(mp.y - oy) < 28.f) pause_selection = i;
+                }
+            }
         }
 
         if (state == State::PLAYING) {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Left)) {
-                platform.target_speed = -platform.max_speed;
-            } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Right)) {
-                platform.target_speed = platform.max_speed;
-            } else {
-                platform.target_speed = 0.f;
-            }
-            platform.update();
-
             sf::Vector2f ppos = platform.getPosition();
-            if (ppos.x < 0) {
-                platform.setPosition({0.f, ppos.y});
-                if (platform.speed < 0) platform.speed = 0.f;
-            }
-            if (ppos.x > static_cast<float>(window_width) - platform_width) {
-                platform.setPosition({static_cast<float>(window_width) - platform_width, ppos.y});
-                if (platform.speed > 0) platform.speed = 0.f;
+
+            if (using_mouse) {
+                // Mouse control: platform center follows cursor X
+                float desired_x = static_cast<float>(sf::Mouse::getPosition(window).x)
+                                  - platform_width / 2.f;
+                desired_x = std::clamp(desired_x, 0.f,
+                                       static_cast<float>(window_width) - platform_width);
+                float delta = desired_x - ppos.x;
+                platform.setPosition({desired_x, ppos.y});
+                platform.speed = delta;  // feed into friction physics
+            } else {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Left)) {
+                    platform.target_speed = -platform.max_speed;
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Right)) {
+                    platform.target_speed = platform.max_speed;
+                } else {
+                    platform.target_speed = 0.f;
+                }
+                platform.update();
+
+                ppos = platform.getPosition();
+                if (ppos.x < 0) {
+                    platform.setPosition({0.f, ppos.y});
+                    if (platform.speed < 0) platform.speed = 0.f;
+                }
+                if (ppos.x > static_cast<float>(window_width) - platform_width) {
+                    platform.setPosition({static_cast<float>(window_width) - platform_width, ppos.y});
+                    if (platform.speed > 0) platform.speed = 0.f;
+                }
             }
 
             if (!ball_launched) {

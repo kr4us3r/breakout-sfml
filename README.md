@@ -7,7 +7,7 @@ A modern take on Breakout, built in C++ with SFML 3.0. Features procedurally sha
 ## Highlights
 
 ### Crumbling bricks
-Every brick is procedurally decomposed into a unique **Voronoi diagram** of polygon fragments - a different shatter pattern each game. When the ball hits, the nearest fragments physically break off.
+Every brick is procedurally decomposed into a unique Voronoi diagram of polygon fragments - a different shatter pattern each game. When the ball hits, the nearest fragments physically break off.
 
 ### Realistic physics
 - The ball reflects off the surfaces at the angle a real ball would, with restitution and friction coupling to paddle motion.
@@ -23,12 +23,12 @@ Press Space while the ball is in play to charge the paddle. The next contact giv
 
 ## Controls
 
-| Key       | Action |
-|-----------|--------|
-| **← / →** | Move paddle |
-| **Space** | Launch ball / Charge & discharge paddle |
-| **↑ / ↓** | Navigate menu |
-| **Esc**   | Pause to menu / Quit |
+| Input           | Action |
+|-----------------|--------|
+| **← / →** or **Mouse** | Move paddle |
+| **Space / Click** | Launch ball / Charge & discharge paddle / Select menu item |
+| **↑ / ↓**       | Navigate menu |
+| **Esc**         | Pause game / Resume / Return to menu / Quit |
 
 ---
 
@@ -39,27 +39,28 @@ Press Space while the ball is in play to charge the paddle. The next contact giv
 - **SFML 3.0**
 - **FreeType** (bundled with SFML static libs)
 
-### Music assets
+### Audio assets (music + SFX)
 
-The music tracks live in `assets/music/`. They are embedded into the
-executable as C++ byte arrays via `tools/embed_music.py`, so the resulting
+Both the music tracks (in `assets/music/`) and the sound effects are embedded into the
+executable as C++ byte arrays via `tools/embed_audio.py`, so the resulting
 `.exe` is fully self-contained.
 
-If you add, replace, or remove tracks, update the `TRACKS` list in
-`tools/embed_music.py` and regenerate the embedded sources:
+If you add, replace, or remove any audio asset, regenerate the embedded
+sources:
 
 ```bash
-python tools/embed_music.py
+# Re-embed all audio (music + SFX) into C++ sources
+python tools/embed_audio.py
 ```
 
-This regenerates `include/music_data.hpp` and `src/music_data.cpp`, which are
+This regenerates `include/audio_data.hpp` and `src/audio_data.cpp`, which are
 picked up automatically by the build (the latter is compiled alongside the
 other translation units under `src/`).
 
 ### Build (Windows / MinGW)
 ```bash
-# 1. Embed the music tracks into C++ sources (run once, or whenever tracks change)
-python tools/embed_music.py
+# 1. Embed the audio assets into C++ sources (run once, or whenever assets change)
+python tools/embed_audio.py
 
 # 2. Compile
 g++ -O3 -std=c++20 -static -DSFML_STATIC \

@@ -63,10 +63,11 @@ class Game {
 
     // game mode + state
     enum class Mode { STORY, ENDLESS };
-    enum class State { MENU, PLAYING, LEVEL_CLEAR, DEAD, WIN };
+    enum class State { MENU, PLAYING, PAUSED, LEVEL_CLEAR, DEAD, WIN };
     Mode mode = Mode::STORY;
     State state = State::MENU;
     unsigned menu_selection = 0;          // 0 = Story, 1 = Endless
+    unsigned pause_selection = 0;         // 0 = Resume, 1 = Main Menu
     unsigned current_level = 1u;
     static constexpr unsigned endless_cap_level = 12u;  // difficulty caps here
     float level_clear_timer = 0.f;
@@ -77,6 +78,11 @@ class Game {
     unsigned score = 0;
     unsigned best_score = 0;
     float death_timer = 0.f;
+
+    // input mode tracking — mouse takes over when it moves, keyboard
+    // takes over when an arrow key is pressed.
+    bool using_mouse = false;
+    int last_mouse_x = -1;
 
     // timing
     sf::Clock clock;
@@ -98,6 +104,7 @@ class Game {
     void renderHearts();
     void renderHUD();
     void renderMenu();
+    void renderPauseScreen();
     void renderDeathScreen();
     void renderWinScreen();
     void renderLevelClearScreen();
